@@ -37,11 +37,8 @@ def solve_upper_triangular(S, y):
 
 def solve_systems(A, b):
     S = cholesky_decomposition(A)
-
-    # Решение S @ y = b
     y = solve_lower_triangular(S, b)
 
-    # Решение S.T @ x = y
     x = solve_upper_triangular(S, y)  # Используем транспонированную матрицу S
     return x, y
 
