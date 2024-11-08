@@ -9,27 +9,19 @@ def print_matrix(matrix):
 # Функция для выполнения базовой прямой и обратной подстановки
 def basic_elimination(M: np.ndarray) -> np.ndarray:
     for i in range(M.shape[0]):
-        # Прямая подстановка
+        M = M.astype(float)
         for j in range(i):
             M[i, :] -= M[i, j] * M[j, :]  # Обнуляем элементы в строке
 
         M[i, :] /= M[i, i]  # Нормируем строку
 
-        # Обратная подстановка
         for j in range(i):
             M[j, :] -= M[j, i] * M[i, :]  # Обнуляем верхние элементы
 
-        print_matrix(M)  # Печать матрицы после каждого шага
+        print_matrix(M)  
 
     return M
 
-# Функция для выполнения оптимизированной процедуры исключения
-def optimal_elimination(M: np.ndarray) -> np.ndarray:
-    M = M.astype(float)
-    # Прямой и обратный ход
-    M = basic_elimination(M)
-
-    return M
 
 # Исходная матрица
 M = np.array(
@@ -43,7 +35,7 @@ M = np.array(
 )
 
 # Выполняем исключение и получаем матрицу с решением
-result_matrix = optimal_elimination(M)
+result_matrix = basic_elimination(M)
 solution = result_matrix[:, -1]  # Последний столбец содержит решения
 
 A = M[:, :-1] 
