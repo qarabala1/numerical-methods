@@ -1,38 +1,43 @@
 import numpy as np
 
-
-def get_inv(A, depth=0):
-    n = len(A)  # Размер матрицы
-    k = n - 1   # Индекс последней строки/столбца
+# Основная функция нахождения обратной матрицы
+def matrix_inverse(A):
+    n = A.shape[0]  # Размер матрицы
+    A_inv = np.zeros_like(A, dtype=float)  # Создаем пустую матрицу для хранения обратной
 
     # Базовый случай: если матрица 1x1
-    if n == 1:
-        return np.matrix([[1 / A[0, 0]]])
+    A_inv[0, 0] = 1 / A[0, 0]
 
-    # Подматрица, исключающая последнюю строку и столбец
-    Ap = A[:k, :k]
-    V, U = A[k, :k], A[:k, k].reshape(-1, 1)  # Последняя строка и последний столбец
+    # Процесс окаймления
+    for k in range(1, n):
+        # Подматрица A_k
+        A_k = A[:k, :k]
+        
+        # Вектора u и v
+        u = A[:k, k]  # столбец u
+        v = A[k, :k]  # строка v^T
+        a_kk = A[k, k]  # элемент a_{k,k}
 
-    # Рекурсивный вызов для нахождения обратной подматрицы
-    Ap_inv = get_inv(Ap, depth + 1)
+        # Находим обратную для подматрицы A_k
+        A_k_inv = A_inv[:k, :k]
 
-    # Вычисление коэффициентов
-    alpha = 1 / (A[k, k] - V * Ap_inv * U).item()  # Определитель
-    Q = -V * Ap_inv * alpha  # Вектор Q
-    P = Ap_inv - Ap_inv * U * Q  # Обновленная подматрица P
-    Z = - Ap_inv * U * alpha  # Вектор Z
+        # Величина для корректировки
+        denom = a_kk - v @ A_k_inv @ u
 
-    # Создание полной обратной матрицы
-    A_inv = np.matrix([[0.0] * n for _ in range(n)])
-    A_inv[:k, :k] = P  # Заполнение верхней левой части
-    A_inv[k, :k] = Q[0]  # Заполнение последней строки
-    A_inv[:k, k] = Z[:, 0]  # Заполнение последнего столбца
-    A_inv[k, k] = alpha  # Заполнение нижнего правого элемента
+        # Формируем новые блоки обратной матрицы
+        A_inv_new = np.zeros((k + 1, k + 1))
+        A_inv_new[:k, :k] = A_k_inv + (A_k_inv @ u[:, None] @ v[None, :] @ A_k_inv) / denom
+        A_inv_new[:k, k] = -A_k_inv @ u / denom
+        A_inv_new[k, :k] = -v @ A_k_inv / denom
+        A_inv_new[k, k] = 1 / denom
+
+        # Обновляем текущую обратную матрицу
+        A_inv[:k + 1, :k + 1] = A_inv_new
 
     return A_inv
 
 
-if __name__ == '__main__':
+def main():
     A = np.array([
         [0.411, 0.421, -0.333, 0.313, -0.141, -0.381, 0.245],
         [0.241, 0.705, 0.139, -0.409, 0.321, 0.0625, 0.101],
@@ -43,20 +48,20 @@ if __name__ == '__main__':
         [0.246, -0.301, 0.231, 0.813, -0.702, 1.223, 1.105],
     ])
     b = np.array([0.096, 1.252, 1.024, 1.023, 1.155, 1.937, 1.673])
-    x_answer = np.array([11.092, -2.516, 0.721, -2.515, -1.605, 3.624, -4.95])
 
-    # Нахождение обратной матрицы
-    A_inv = get_inv(A)
+    A_inv = matrix_inverse(A)
+
+    # Печать обратной матрицы
     print("\nОбратная матрица:\n", A_inv)
 
     # Проверка: произведение A и A_inv должно быть единичной матрицей
-    identity_check = np.dot(A, A_inv)
+    identity_check = A @ A_inv
     print("\nПроверка: A * A_inv =\n", identity_check)
 
-    # Вычисление суммарного отклонения от единичной матрицы
+    # Вывод матрицы разниц (A * A_inv - единичная матрица)
     identity_matrix = np.eye(A.shape[0])  # Создание единичной матрицы
-    deviation = np.sum(np.abs(identity_check - identity_matrix))  # Суммарное отклонение
-    print("\nСуммарное отклонение от единичной матрицы:", deviation)
+    difference_matrix = identity_check - identity_matrix
+    print("\nМатрица разниц (A * A_inv - единичная матрица):\n", difference_matrix)
 
     # Проверка, что диагональные элементы обратной матрицы равны единице
     diagonal_elements = np.diag(identity_check)
@@ -66,5 +71,9 @@ if __name__ == '__main__':
         print("Некоторые диагональные элементы не равны единице:", diagonal_elements)
 
     # Решение системы уравнений Ax = b
-    x = A_inv * b.reshape(-1, 1)  # Умножение обратной матрицы на вектор b
+    x = A_inv @ b  # Умножение обратной матрицы на вектор b
     print("\nРешение системы Ax = b:\n", x)
+
+    print(A @ x - b)
+if __name__ == '__main__':
+    main()
