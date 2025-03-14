@@ -68,3 +68,4 @@ if __name__ == '__main__':
 
     x_numpy = np.linalg.solve(A, b)
     print("Решение с использованием np.linalg.solve:", x_numpy)
+    print(A @ x - b)

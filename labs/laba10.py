@@ -65,7 +65,7 @@ matrices = [
               [0.66, 0.44, 0.22, 1.00]])
 ]
 
-p = 1
+p = 8
 
 for index, A in enumerate(matrices):
     print(f"Матрица {index + 1}:")
