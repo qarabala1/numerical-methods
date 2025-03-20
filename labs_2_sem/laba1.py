@@ -44,7 +44,7 @@ def plot_solutions(x_exact, y_exact, x_numerical, y_numerical, labels, title):
     plt.figure(figsize=(10, 6))
     plt.plot(x_exact, y_exact, 'k-', label='Точное решение')
     for i in range(len(x_numerical)):
-        plt.plot(x_numerical[i], y_numerical[i], 'o--', label=labels[i])
+        plt.plot(x_numerical[i], y_numerical[i], '--', label=labels[i])
     plt.xlabel('x')
     plt.ylabel('y')
     plt.title(title)
@@ -53,19 +53,32 @@ def plot_solutions(x_exact, y_exact, x_numerical, y_numerical, labels, title):
     plt.show()
 
 x0, y0 = 0.0, 0.5  
-n = 5  
+n = 500
 x_end = 2  
 h = (x_end - x0) / n  
 
 x_euler, y_euler = euler_method(f, x0, y0, h, n)
 x_improved, y_improved = improved_euler_method(f, x0, y0, h, n)
 x_rk4, y_rk4 = runge_kutta_4th_order(f, x0, y0, h, n)
+
+y_exact_euler = exact_solution(x_euler)
+y_exact_improved = exact_solution(x_improved)
+y_exact_rk4 = exact_solution(x_rk4)
+
+max_error_euler = np.max(np.abs(y_euler - y_exact_euler))
+max_error_improved = np.max(np.abs(y_improved - y_exact_improved))
+max_error_rk4 = np.max(np.abs(y_rk4 - y_exact_rk4))
+
+print(f"Максимальная погрешность:")
+print(f"- Метод Эйлера: {max_error_euler:.6e}")
+print(f"- Улучшенный Эйлер: {max_error_improved:.6e}")
+print(f"- Рунге-Кутта: {max_error_rk4:.6e}")
+
 x_exact = np.linspace(x0, x_end, 100)
 y_exact = exact_solution(x_exact)
 
-# Построение графиков
 plot_solutions(x_exact, y_exact, 
                [x_euler, x_improved, x_rk4], 
                [y_euler, y_improved, y_rk4], 
-               ['Метод Эйлера', 'Улучшенный Эйлер', 'Рунге-Кутта 4-го порядка'], 
+               ['Метод Эйлера', 'Улучшенный Эйлер', 'Рунге-Кутта'], 
                'Сравнение методов решения y\' = y - x^2 + 1')
