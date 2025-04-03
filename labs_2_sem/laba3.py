@@ -1,110 +1,108 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
-def phi(x, t):
-    return (46 * np.pi * (9/4) - 6) * np.exp(-6 * t) * np.sin(6 * x / 4)
 
-def psi(x):
-    return np.sin(6 * x / 4)
+a_sq = 16 / np.pi
+L = 4.0          
+T_max = 1.0      
+Nx = 100         
+Nt = 20000
 
-def explicit_scheme(a, gamma_0, gamma_1, M, N, l, T):
-    h = l / M
-    tau = T / N
-    lambda_ = (a**2 * tau) / h**2
-    print(f"lambda (Явная схема) = {lambda_:.3f}")
-    if lambda_ > 0.5:
-        print("Предупреждение: Схема неустойчива!")
+h = L / Nx       
+tau = T_max / Nt 
 
-    x = np.linspace(0, l, M + 1)
-    t = np.linspace(0, T, N + 1)
-    u = np.zeros((N + 1, M + 1))
+x = np.linspace(0, L, Nx + 1)  
+t = np.linspace(0, T_max, Nt + 1)  
+X, T = np.meshgrid(x, t)
 
-    # Начальное и граничные условия
-    u[0, :] = psi(x)
-    u[:, 0] = gamma_0
-    u[:, -1] = gamma_1
+def analytical_solution(x, t):
+    return np.exp(-np.pi * t) * np.sin(np.pi * x / 4)
 
-    # Явная схема
-    for n in range(N):
-        for m in range(1, M):
-            u[n+1, m] = u[n, m] + lambda_ * (u[n, m+1] - 2*u[n, m] + u[n, m-1]) + tau * phi(x[m], t[n])
+U_analytical = analytical_solution(X, T)
 
-    return x, t, u
+u_explicit = np.zeros((Nx + 1, Nt + 1)) 
+u_explicit[:, 0] = analytical_solution(x, 0)
+gamma = a_sq * tau / h**2  
 
-def implicit_scheme(a, gamma_0, gamma_1, M, N, l, T):
-    h = l / M
-    tau = T / N
-    lambda_ = (a**2 * tau) / h**2
+for n in range(Nt):  
+    u_explicit[1:-1, n+1] = u_explicit[1:-1, n] + gamma * (
+        u_explicit[2:, n] - 2*u_explicit[1:-1, n] + u_explicit[:-2, n]
+    )
+    u_explicit[0, n+1] = 0
+    u_explicit[-1, n+1] = 0
 
-    x = np.linspace(0, l, M + 1)
-    t = np.linspace(0, T, N + 1)
-    u = np.zeros((N + 1, M + 1))
+u_implicit = np.zeros((Nx + 1, Nt + 1))  
+u_implicit[:, 0] = analytical_solution(x, 0)
+alpha = gamma
 
-    # Начальное и граничные условия
-    u[0, :] = psi(x)
-    u[:, 0] = gamma_0
-    u[:, -1] = gamma_1
+for n in range(Nt):
+    d = u_implicit[1:-1, n].copy()
+    size = len(d) 
+    
+    a = -alpha * np.ones(size - 1)  
+    b = (1 + 2*alpha) * np.ones(size)  
+    c = -alpha * np.ones(size - 1)  
+    
+    for i in range(1, size):
+        m = a[i-1] / b[i-1]
+        b[i] -= m * c[i-1]
+        d[i] -= m * d[i-1]
+    
+    u_new = np.zeros(size)
+    u_new[-1] = d[-1] / b[-1]
+    for i in range(size-2, -1, -1):
+        u_new[i] = (d[i] - c[i] * u_new[i+1]) / b[i]
+    
+    u_implicit[1:-1, n+1] = u_new
+    u_implicit[0, n+1] = 0
+    u_implicit[-1, n+1] = 0
 
-    # Построение матрицы для неявной схемы
-    A = np.zeros((M-1, M-1))
-    for i in range(M-1):
-        if i > 0: A[i, i-1] = -lambda_
-        A[i, i] = 1 + 2*lambda_
-        if i < M-2: A[i, i+1] = -lambda_
+error_explicit = np.abs(u_explicit.T - U_analytical)
+error_implicit = np.abs(u_implicit.T - U_analytical)
+print('Максимальная погрешность явной схемы:', np.max(error_explicit))
+print('Максимальная погрешность неявной схемы', np.max(error_implicit))
+print('tau =', tau)
 
-    # Решение на каждом шаге
-    for n in range(N):
-        b = u[n, 1:-1].copy() + tau * phi(x[1:-1], t[n])
-        u[n+1, 1:-1] = np.linalg.solve(A, b)
 
-    return x, t, u
 
-def exact_solution(x, t):
-    return np.exp(-6 * t) * np.sin(6 * x / 4)
+fig = plt.figure(figsize=(18, 12))
 
-def plot_comparison(x, t, u_num, scheme_name):
-    X, T = np.meshgrid(x, t)
-    u_exact = exact_solution(X, T)
-    error = u_exact - u_num
+alpha_value = 0.7
 
-    fig = plt.figure(figsize=(18, 6))
-    fig.suptitle(scheme_name, fontsize=14)
+# Явная схема
+ax1 = fig.add_subplot(231, projection='3d')
+ax1.plot_surface(X, T, u_explicit.T, cmap='viridis', alpha=alpha_value)
+ax1.set_title('Явная схема')
+ax1.set_xlabel('x')
+ax1.set_ylabel('t')
 
-    # Аналитическое решение
-    ax1 = fig.add_subplot(131, projection='3d')
-    ax1.plot_surface(X, T, u_exact, cmap='viridis', rstride=10, cstride=10)
-    ax1.set_title("Аналитическое решение")
+# Неявная схема
+ax2 = fig.add_subplot(232, projection='3d')
+ax2.plot_surface(X, T, u_implicit.T, cmap='viridis', alpha=alpha_value)
+ax2.set_title('Неявная схема')
+ax2.set_xlabel('x')
+ax2.set_ylabel('t')
 
-    # Численное решение
-    ax2 = fig.add_subplot(132, projection='3d')
-    ax2.plot_surface(X, T, u_num, cmap='viridis', rstride=10, cstride=10)
-    ax2.set_title("Численное решение")
+# Аналитическое решение
+ax3 = fig.add_subplot(233, projection='3d')
+ax3.plot_surface(X, T, U_analytical, cmap='viridis', alpha=alpha_value)
+ax3.set_title('Аналитическое решение')
+ax3.set_xlabel('x')
+ax3.set_ylabel('t')
 
-    # Погрешность
-    ax3 = fig.add_subplot(133, projection='3d')
-    ax3.plot_surface(X, T, error, cmap='coolwarm', rstride=10, cstride=10)
-    ax3.set_title("Погрешность")
+# Погрешность явной схемы
+ax4 = fig.add_subplot(234, projection='3d')
+ax4.plot_surface(X, T, error_explicit, cmap='hot', alpha=alpha_value)
+ax4.set_title('Погрешность явной схемы')
+ax4.set_xlabel('x')
+ax4.set_ylabel('t')
 
-    plt.tight_layout()
-    plt.show()
+# Погрешность неявной схемы
+ax5 = fig.add_subplot(235, projection='3d')
+ax5.plot_surface(X, T, error_implicit, cmap='hot', alpha=alpha_value)
+ax5.set_title('Погрешность неявной схемы')
+ax5.set_xlabel('x')
+ax5.set_ylabel('t')
 
-def main():
-    # Параметры задачи
-    a = np.sqrt(46 * np.pi)  # a² = 46π
-    gamma_0 = gamma_1 = 0    # Нулевые граничные условия
-    l = (4 * np.pi) / 6      # Длина области
-    M = 10                  # Узлов по пространству
-    N = 20000                  # Узлов по времени (увеличено для устойчивости)
-    T_max = 2              # Конечное время
-
-    # Явная схема (неустойчива при данных параметрах!)
-    x_exp, t_exp, u_exp = explicit_scheme(a, gamma_0, gamma_1, M, N, l, T_max)
-    plot_comparison(x_exp, t_exp, u_exp, "Явная схема (Неустойчивая)")
-
-    # Неявная схема
-    x_imp, t_imp, u_imp = implicit_scheme(a, gamma_0, gamma_1, M, N, l, T_max)
-    plot_comparison(x_imp, t_imp, u_imp, "Неявная схема")
-
-if __name__ == "__main__":
-    main()
+plt.tight_layout()
+plt.show()
