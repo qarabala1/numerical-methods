@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 x_1 = 0.0
 x_n = 1.0
-N = 200  
+N = 100
 h = (x_n - x_1) / N
 x = np.linspace(x_1, x_n, N + 1)
 
@@ -20,8 +20,9 @@ def exact_solution(x):
     return 1.0 / (x + 1.0)
 
 def compute_a_c(r):
-    a_i = (1.0 - r) / h**2
-    c_i = (1.0 + r) / h**2
+    term = np.tan(np.abs(r)) + 1.0 / (np.abs(r) + 1.0)
+    a_i = (term - r) / h**2
+    c_i = (term + r) / h**2
     return a_i, c_i
 
 A = np.zeros((N + 1, N + 1))
@@ -39,7 +40,6 @@ for i in range(1, N):
     r_i = 0.5 * p(x[i]) * h
     a_i, c_i = compute_a_c(r_i)
     
-    # Если i=1, исключаем u0 из уравнения
     if i == 1:
         coeff_u0 = A[0, 0]  
         coeff_u1 = A[0, 1]  
