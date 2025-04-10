@@ -43,6 +43,7 @@ for n in range(Nt):
     b = (1 + 2*alpha) * np.ones(size)  
     c = -alpha * np.ones(size - 1)  
     
+    # Прямой ход прогонки
     for i in range(1, size):
         m = a[i-1] / b[i-1]
         b[i] -= m * c[i-1]
@@ -62,9 +63,6 @@ error_implicit = np.abs(u_implicit.T - U_analytical)
 print('Максимальная погрешность явной схемы:', np.max(error_explicit))
 print('Максимальная погрешность неявной схемы', np.max(error_implicit))
 print('tau =', tau)
-
-
-
 fig = plt.figure(figsize=(18, 12))
 
 alpha_value = 0.7
